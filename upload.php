@@ -1,33 +1,61 @@
 <?php
-
+$conn = mysqli_connect('localhost', 'root', '', 'fileupload');
+if(!$conn) {
+	die("Not connected! ".mysqli_connect_error());
+} else {
+	echo "<h3>Connected!</h3><hr>";
+}
+$msg = "";
 if (isset($_REQUEST["upload"])) {
-	$file = $_FILES['file'];
-	$fileName = $_FILES['file']['name'];
-	$fileTmpName = $_FILES['file']['tmp_name'];
-	$fileSize = $_FILES['file']['size'];
-	$fileError = $_FILES['file']['error'];
-	$fileType = $_FILES['file']['type'];
+	// File details
+	$imgName = $_FILES['image']['name'];
+	$imgTmpName = $_FILES['image']['tmp_name'];
+	$imgError = $_FILES['image']['error'];
 
-	$fileExt = explode('.', $fileName); // separates file name by '.'
-	$fileActualExt = strtolower(end($fileExt)); /* converts separated names to lowercase and selects end part i.e. extension part */
+	// Getting text from textarea
+	$txt = $_REQUEST['text'];
 
+	// Getting, checking and validating image
+	$fileseparate = explode('.', $imgName);
+
+	$fileextcheck = strtolower(end($fileseparate));
 	$allowed = array('jpg', 'jpeg', 'png');
 
-	if (in_array($fileActualExt, $allowed)) {
-		if ($fileError === 0) {
-			if ($fileSize < 100000) {
-				$fileNameNew = uniqid('', true).".".$fileActualExt;
-				$fileDestination = 'uploads/'.$fileNameNew;
-				move_uploaded_file($fileTmpName, $fileDestination);
-				header("Location: index.php?uploaded_successfylly");
-			} else {
-				echo "Your file size is too big!";
+	if (in_array($fileextcheck, $allowed)) {
+		if ($imgError === 0) {
+			// File new name for supporting duplicate file
+			$fileNewName = uniqid("$fileseparate[0]_", true).".".$fileextcheck;
+
+			// Destination
+			$target = "uploads/".$fileNewName;
+
+			// Insert to database
+			$sql = "INSERT INTO uploads(image, text) VALUES('$fileNewName', '$txt')";
+			$result = mysqli_query($conn, $sql);
+			if (!$result) {
+				die("Unable to upload. ".mysqli_error($conn));
 			}
+
+			// Move uploaded image to folder
+			if (move_uploaded_file($imgTmpName, $target)) {
+				$msg = "<h3>Image Uploaded Successfully!</h3>";
+			} else {
+				$msg = "<h3>Unable to upload image.</h3>";
+			}
+
 		} else {
-			echo "There is an error uploading the file!";
+			echo "Error in Image!";
 		}
 	} else {
-		echo "You can't upload files of this type!";
+		echo "Unsupported file format: $imgName. Allowed jpg, jpeg, png files only.";
 	}
+
+
+	// Redirect to Form page
+	header("Location: index.php?uploaded_successfylly");
 }
+
+
+
+
 ?>
